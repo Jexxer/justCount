@@ -1,7 +1,9 @@
 import {
+  Alert,
   Dimensions,
   FlatList,
   Keyboard,
+  Modal,
   Pressable,
   StyleSheet,
   TextInput,
@@ -17,6 +19,23 @@ import { FontAwesome } from "@expo/vector-icons";
 export default function CountScreen() {
   const isKeyboardVisible = useKeyboardVisible();
   const [count, setCount] = useState<any>(0);
+  const [values, setValues] = useState<number[]>([
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  ]);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const getValues = async () => {
+    const values = new Array().fill(0);
+    try {
+      for (let i = 0; i < 10; i++) {
+        const res = await AsyncStorage.getItem(`value-${i}`);
+        if (res !== null) values[i] = parseInt(res);
+      }
+      setValues(values);
+    } catch (e) {
+      console.log("error getting values", e);
+    }
+  };
 
   const storeData = async (value: string) => {
     try {
@@ -25,8 +44,6 @@ export default function CountScreen() {
       // saving error
     }
   };
-
-  const listValues = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
   const getData = async (): Promise<string | null> => {
     try {
@@ -93,17 +110,46 @@ export default function CountScreen() {
       },
     });
     return (
-      <Pressable
-        style={addButtonStyles.button}
-        onPress={() => increment(number)}
-        disabled={isKeyboardVisible}
-      >
-        {number ? (
-          <Text style={addButtonStyles.text}>{number}</Text>
-        ) : (
-          <FontAwesome name="plus" size={35} />
-        )}
-      </Pressable>
+      <>
+        <Pressable
+          style={addButtonStyles.button}
+          onPress={() => increment(number)}
+          disabled={isKeyboardVisible}
+          onLongPress={() => setModalVisible(true)}
+        >
+          {number ? (
+            <Text style={addButtonStyles.text}>{number}</Text>
+          ) : (
+            <FontAwesome name="plus" size={35} />
+          )}
+        </Pressable>
+        {/* this cannot be created 10 times, */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          // onRequestClose={() => {
+          //   Alert.alert("Modal has been closed.");
+          //   setModalVisible(!modalVisible);
+          // }}
+        >
+          <View style={modalStyles.centeredView}>
+            <View style={modalStyles.modalView}>
+              <Text style={modalStyles.modalText}>Edit number</Text>
+              <TextInput style={modalStyles.input} />
+              <Pressable
+                style={[modalStyles.button, modalStyles.buttonClose]}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setModalVisible(!modalVisible);
+                }}
+              >
+                <Text style={modalStyles.textStyle}>Hide Modal</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+      </>
     );
   };
 
@@ -143,7 +189,7 @@ export default function CountScreen() {
         </View>
         <View style={styles.btnContainer}>
           <FlatList
-            data={listValues}
+            data={values}
             numColumns={5}
             contentContainerStyle={{ gap: 10 }}
             columnWrapperStyle={{ gap: 10, padding: 10 }}
@@ -201,5 +247,57 @@ const buttonStyles = StyleSheet.create({
   right: {
     ...styles.button,
     backgroundColor: "#42a5f5",
+  },
+});
+
+const modalStyles = StyleSheet.create({
+  centeredView: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 22,
+  },
+  modalView: {
+    width: "90%",
+    margin: 20,
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 35,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  button: {
+    borderRadius: 20,
+    padding: 10,
+    elevation: 2,
+  },
+  buttonOpen: {
+    backgroundColor: "#F194FF",
+  },
+  buttonClose: {
+    backgroundColor: "#2196F3",
+  },
+  textStyle: {
+    color: "white",
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  modalText: {
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  input: {
+    width: "100%",
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "black",
+    borderRadius: 10,
   },
 });
