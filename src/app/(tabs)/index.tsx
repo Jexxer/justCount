@@ -8,6 +8,8 @@ import {
   StyleSheet,
   TextInput,
   TouchableWithoutFeedback,
+  NativeSyntheticEvent,
+  TextInputChangeEventData,
 } from "react-native";
 
 import { Text, View } from "react-native";
@@ -23,15 +25,17 @@ export default function CountScreen() {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   ]);
   const [modalVisible, setModalVisible] = useState(false);
+  const [modalInputValue, setModalInputValue] = useState<any>(0);
+  const [targetIndex, setTargetIndex] = useState<number>(0);
 
   const getValues = async () => {
-    const values = new Array().fill(0);
+    const temp = values;
     try {
       for (let i = 0; i < 10; i++) {
         const res = await AsyncStorage.getItem(`value-${i}`);
-        if (res !== null) values[i] = parseInt(res);
+        if (res !== null) temp[i] = parseInt(res);
       }
-      setValues(values);
+      setValues(temp);
     } catch (e) {
       console.log("error getting values", e);
     }
@@ -61,7 +65,6 @@ export default function CountScreen() {
 
   function handleChange(event: string) {
     // update state with user TextInput
-    console.log(event);
     if (event === "") {
       setCount("");
       return;
@@ -89,10 +92,11 @@ export default function CountScreen() {
   }
   interface AdditionalAddButtonProps {
     number: number;
+    index: number;
   }
 
   const AdditionalAddButton = (props: AdditionalAddButtonProps) => {
-    const { number } = props;
+    const { number, index } = props;
     const addButtonStyles = StyleSheet.create({
       button: {
         backgroundColor: "white",
@@ -109,46 +113,30 @@ export default function CountScreen() {
         textAlign: "center",
       },
     });
+
+    const handlePress = () => {
+      if (number === 0) {
+        setTargetIndex(index);
+        setModalVisible(true);
+      } else increment(number);
+    };
     return (
       <>
         <Pressable
           style={addButtonStyles.button}
-          onPress={() => increment(number)}
+          onPress={handlePress}
           disabled={isKeyboardVisible}
-          onLongPress={() => setModalVisible(true)}
+          onLongPress={() => {
+            setTargetIndex(index);
+            setModalVisible(true);
+          }}
         >
           {number ? (
             <Text style={addButtonStyles.text}>{number}</Text>
           ) : (
-            <FontAwesome name="plus" size={35} />
+            <FontAwesome name="plus" size={35} color="grey" />
           )}
         </Pressable>
-        {/* this cannot be created 10 times, */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={modalVisible}
-          // onRequestClose={() => {
-          //   Alert.alert("Modal has been closed.");
-          //   setModalVisible(!modalVisible);
-          // }}
-        >
-          <View style={modalStyles.centeredView}>
-            <View style={modalStyles.modalView}>
-              <Text style={modalStyles.modalText}>Edit number</Text>
-              <TextInput style={modalStyles.input} />
-              <Pressable
-                style={[modalStyles.button, modalStyles.buttonClose]}
-                onPress={() => {
-                  Keyboard.dismiss();
-                  setModalVisible(!modalVisible);
-                }}
-              >
-                <Text style={modalStyles.textStyle}>Hide Modal</Text>
-              </Pressable>
-            </View>
-          </View>
-        </Modal>
       </>
     );
   };
@@ -160,6 +148,7 @@ export default function CountScreen() {
       else setCount(parseInt(result));
     };
     fetch();
+    getValues();
   }, []);
 
   return (
@@ -177,27 +166,81 @@ export default function CountScreen() {
             onPress={decrement}
             disabled={isKeyboardVisible}
           >
-            <Text style={buttonStyles.text}>-</Text>
+            <FontAwesome name="minus" size={35} color="black" />
           </Pressable>
           <Pressable
             style={buttonStyles.right}
             onPress={() => increment(1)}
             disabled={isKeyboardVisible}
           >
-            <Text style={buttonStyles.text}>+</Text>
+            <FontAwesome name="plus" size={35} color="black" />
           </Pressable>
         </View>
         <View style={styles.btnContainer}>
           <FlatList
             data={values}
             numColumns={5}
-            contentContainerStyle={{ gap: 10 }}
             columnWrapperStyle={{ gap: 10, padding: 10 }}
-            renderItem={({ item }) => {
-              return <AdditionalAddButton number={item} />;
+            renderItem={({ item, index }) => {
+              return <AdditionalAddButton number={item} index={index} />;
             }}
           />
         </View>
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          // onRequestClose={() => {
+          //   Alert.alert("Modal has been closed.");
+          //   setModalVisible(!modalVisible);
+          // }}
+        >
+          <View style={modalStyles.centeredView}>
+            <View style={modalStyles.modalView}>
+              <Text style={modalStyles.modalText}>Edit number</Text>
+              <TextInput
+                style={modalStyles.input}
+                keyboardType="numeric"
+                value={`${modalInputValue}`}
+                onChange={(
+                  e: NativeSyntheticEvent<TextInputChangeEventData>,
+                ): void => {
+                  if (e.nativeEvent.text === "") setModalInputValue("");
+                  else setModalInputValue(parseInt(e.nativeEvent.text));
+                }}
+              />
+              <Pressable
+                style={[modalStyles.button, modalStyles.buttonClose]}
+                onPress={() => {
+                  setValues((prevValues) => {
+                    const newValues = [...prevValues];
+                    newValues[targetIndex] = modalInputValue;
+                    return newValues;
+                  });
+                  // store value
+                  AsyncStorage.setItem(
+                    `value-${targetIndex}`,
+                    `${modalInputValue}`,
+                  );
+
+                  Keyboard.dismiss();
+                  setModalVisible(!modalVisible);
+                }}
+              >
+                <Text style={modalStyles.textStyle}>Save</Text>
+              </Pressable>
+              <Pressable
+                style={[modalStyles.button, modalStyles.buttonClose]}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setModalVisible(!modalVisible);
+                }}
+              >
+                <Text style={modalStyles.textStyle}>Cancel</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
       </View>
     </TouchableWithoutFeedback>
   );
@@ -209,7 +252,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: "100%",
     flex: 1,
-    backgroundColor: "white",
   },
   input: {
     textAlign: "center",
@@ -223,6 +265,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     paddingVertical: 20,
     flex: 1,
+    alignItems: "center",
   },
   buttonGrp: {
     width: "100%",
