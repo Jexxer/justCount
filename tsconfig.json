@@ -8,7 +8,9 @@
       "@components/*": ["src/components/*"],
       "@hooks/*": ["src/components/hooks/*"],
       "@assets/*": ["assets/*"],
-      "@constants/*": ["src/constants/*"]
+      "@constants/*": ["src/constants/*"],
+      "@redux/*": ["src/redux/*"]
+
     }
   },
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]

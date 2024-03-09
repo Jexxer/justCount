@@ -1,6 +1,4 @@
 import {
-  Alert,
-  Dimensions,
   FlatList,
   Keyboard,
   Modal,
@@ -17,8 +15,11 @@ import { useEffect, useState } from "react";
 import useKeyboardVisible from "@hooks/useKeyboardVisible";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FontAwesome } from "@expo/vector-icons";
+import PresetButton from "@components/count/PresetButton";
+import { useAppSelector } from "@/src/redux/hooks";
 
 export default function CountScreen() {
+  const counter = useAppSelector((state) => state.counters.counters[state.counters.currentCounter])
   const isKeyboardVisible = useKeyboardVisible();
   const [count, setCount] = useState<any>(0);
   const [values, setValues] = useState<number[]>([
@@ -90,56 +91,7 @@ export default function CountScreen() {
       return prevCount - 1;
     });
   }
-  interface AdditionalAddButtonProps {
-    number: number;
-    index: number;
-  }
 
-  const AdditionalAddButton = (props: AdditionalAddButtonProps) => {
-    const { number, index } = props;
-    const addButtonStyles = StyleSheet.create({
-      button: {
-        backgroundColor: "white",
-        borderRadius: 10,
-        overflow: "hidden",
-        flex: 1,
-        aspectRatio: 1,
-        justifyContent: "center",
-        alignItems: "center",
-      },
-      text: {
-        fontSize: 40,
-        color: "grey",
-        textAlign: "center",
-      },
-    });
-
-    const handlePress = () => {
-      if (number === 0) {
-        setTargetIndex(index);
-        setModalVisible(true);
-      } else increment(number);
-    };
-    return (
-      <>
-        <Pressable
-          style={addButtonStyles.button}
-          onPress={handlePress}
-          disabled={isKeyboardVisible}
-          onLongPress={() => {
-            setTargetIndex(index);
-            setModalVisible(true);
-          }}
-        >
-          {number ? (
-            <Text style={addButtonStyles.text}>{number}</Text>
-          ) : (
-            <FontAwesome name="plus" size={35} color="grey" />
-          )}
-        </Pressable>
-      </>
-    );
-  };
 
   useEffect(() => {
     const fetch = async () => {
@@ -158,7 +110,7 @@ export default function CountScreen() {
           style={styles.input}
           keyboardType="numeric"
           onChangeText={handleChange}
-          value={`${count}`}
+          value={`${counter.count}`}
         />
         <View style={styles.buttonGrp}>
           <Pressable
@@ -182,7 +134,7 @@ export default function CountScreen() {
             numColumns={5}
             columnWrapperStyle={{ gap: 10, padding: 10 }}
             renderItem={({ item, index }) => {
-              return <AdditionalAddButton number={item} index={index} />;
+              return <PresetButton number={item} index={index} setTargetIndex={setTargetIndex} setModalVisible={setModalVisible} />;
             }}
           />
         </View>
@@ -190,10 +142,10 @@ export default function CountScreen() {
           animationType="slide"
           transparent={true}
           visible={modalVisible}
-          // onRequestClose={() => {
-          //   Alert.alert("Modal has been closed.");
-          //   setModalVisible(!modalVisible);
-          // }}
+        // onRequestClose={() => {
+        //   Alert.alert("Modal has been closed.");
+        //   setModalVisible(!modalVisible);
+        // }}
         >
           <View style={modalStyles.centeredView}>
             <View style={modalStyles.modalView}>
@@ -242,7 +194,7 @@ export default function CountScreen() {
           </View>
         </Modal>
       </View>
-    </TouchableWithoutFeedback>
+    </TouchableWithoutFeedback >
   );
 }
 
@@ -252,6 +204,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: "100%",
     flex: 1,
+    backgroundColor: "white",
   },
   input: {
     textAlign: "center",
